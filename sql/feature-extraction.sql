@@ -10,9 +10,9 @@ MainItems AS (
     SELECT 
         i.order_id,
         p.product_category_name AS main_product_category,
-        p.product_description_lenght AS product_description_lenght,
+        p.product_description_length AS product_description_length,
         p.product_photos_qty AS product_photos_qty,
-        P.product_weight_g AS product_weight_g,
+        p.product_weight_g AS product_weight_g,
         s.seller_state AS main_seller_state
     FROM `[PROJECT_ID].shop_data.order_items` i
     LEFT JOIN `[PROJECT_ID].shop_data.products` p 
@@ -57,7 +57,7 @@ SELECT
     c.customer_state,
     mi.main_seller_state,
     mi.main_product_category,
-    mi.product_description_lenght,
+    mi.product_description_length,
     mi.product_photos_qty,
     mi.product_weight_g,
     pa.total_payment_value,
@@ -65,8 +65,8 @@ SELECT
     ct.total_freight,
     o.order_status,
     os.order_sequence,
-    DATE_DIFF(DATETIME(o.order_approved_at), DATE(o.order_purchase_timestamp), MINUTE) AS minutes_for_approval,
-    DATE_DIFF(DATE(os.order_purchase_timestamp), DATE(os.previous_purchase_date), DAY) AS days_between_orders,    
+    DATE_DIFF(DATETIME(o.order_approved_at), DATETIME(o.order_purchase_timestamp), MINUTE) AS minutes_for_approval,
+    DATE_DIFF(DATE(o.order_purchase_timestamp), DATE(os.previous_purchase_date), DAY) AS days_between_orders,    
     DATE_DIFF(DATE(o.order_estimated_delivery_date), DATE(o.order_purchase_timestamp), DAY) AS estimated_waiting_days,
     
     ROUND(
@@ -79,7 +79,7 @@ SELECT
     r.review_score
 
 FROM `[PROJECT_ID].shop_data.orders` o
-LEFT JOIN `[PROJECT_ID].shop_data.order_reviews` r
+JOIN `[PROJECT_ID].shop_data.order_reviews` r
     ON o.order_id = r.order_id
 LEFT JOIN `[PROJECT_ID].shop_data.customers` c
     ON c.customer_id = o.customer_id
