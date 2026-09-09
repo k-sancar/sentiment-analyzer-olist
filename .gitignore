@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+#Added by me
+olist_bert_model/
+*.csv
+venv312/
+results/
+tmp_trainer/
