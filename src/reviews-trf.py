@@ -5,7 +5,7 @@ import numpy as np
 from torch import nn
 from dotenv import load_dotenv
 from google.cloud import bigquery
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 from transformers import (
     AutoTokenizer, 
     AutoModelForSequenceClassification, 
@@ -80,7 +80,15 @@ def main():
     
     df = load_and_preprocess_data(project_id)
     dataset = Dataset.from_pandas(df[['review_comment_message', 'labels']])
-    dataset = dataset.train_test_split(test_size=0.2, seed=42)
+
+    train_test = dataset.train_test_split(test_size=0.2, seed=42)
+    train_val = train_test["train"].train_test_split(test_size=0.1, seed=42)
+
+    dataset = DatasetDict({
+        "train": train_val["train"],
+        "val": train_val["test"],
+        "test": train_test["test"]
+    })
     
     train_labels = np.array(dataset["train"]["labels"])
     class_weights = compute_class_weight(
@@ -124,7 +132,7 @@ def main():
         model=model,
         args=training_args,
         train_dataset=tokenized_datasets["train"],
-        eval_dataset=tokenized_datasets["test"],
+        eval_dataset=tokenized_datasets["val"],
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=1)]
     )

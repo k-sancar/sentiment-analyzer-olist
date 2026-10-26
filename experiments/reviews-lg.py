@@ -27,23 +27,25 @@ if __name__ == '__main__':
     query = f"SELECT * FROM `{project_id}.shop_data.shop_data_review`"
     df = client.query(query).to_dataframe(create_bqstorage_client=False)
 
-    nlp = spacy.load("pt_core_news_lg")
-    clf = xgb.XGBClassifier(tree_method="hist", early_stopping_rounds=3)
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=94)
-
     text_column = 'review_comment_message'
     label_column = 'review_score'
     df = df.dropna(subset=[text_column]).reset_index(drop=True)
+    df = df[df[text_column].str.len() >= 5]
     texts = df[text_column].tolist()
 
-    vectors = []
+    nlp = spacy.load("pt_core_news_lg")
 
+    vectors = []
     for doc in nlp.pipe(texts, disable=["parser", "ner", "textcat"], batch_size=2000):
         vectors.append(doc.vector)
         
-    X, y = np.array(vectors), df[label_column].astype(int) - 1
+    X = np.array(vectors)
+    y = df[label_column].astype(int).map({1: 0, 2: 0, 3: 1, 4: 2, 5: 2})
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
+    
+    clf = xgb.XGBClassifier(tree_method="hist", early_stopping_rounds=3)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=94)
     weights = compute_sample_weight(class_weight='balanced', y=y_train)
     results = {}
 
@@ -71,7 +73,7 @@ if __name__ == '__main__':
 
     y_pred = clf.predict(X_test)
 
-    print("\nClassification Report:")
-    print(classification_report(y_test, y_pred))
-    print("\nMatrix of Confusions:")
+    target_names = ['Negative (1-2)', 'Neutral (3)', 'Positive (4-5)']
+    print(classification_report(y_test, y_pred, target_names=target_names, digits=3))
+    print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))

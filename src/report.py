@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from google.cloud import bigquery
 from datasets import Dataset
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
 
 def setup_environment():
     load_dotenv() 
@@ -61,6 +61,9 @@ def main():
         target_names=['Negative (1-2)', 'Neutral (3)', 'Positive (4-5)'],
         digits=3
     ))
+
+    print("\nConfusion Matrix:")
+    print(confusion_matrix(labels, preds))
 
 if __name__ == "__main__":
     main()
