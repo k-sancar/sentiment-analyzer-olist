@@ -1,0 +1,15 @@
+# virtual environments
+venv/
+venv312/
+.env
+
+# Cache and redundant system files
+__pycache__/
+*.pyc
+.git/
+.gitignore
+
+# Jupyter
+.ipynb_checkpoints/
+src/results/
+experiments/
