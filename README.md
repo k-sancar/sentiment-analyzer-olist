@@ -16,7 +16,6 @@ The project was developed in two main phases:
 
 ## Methodology & Experimental Design
 As the project evolved from initial exploratory scripts into a structured pipeline, the codebase was refactored to enforce a unified evaluation protocol. This ensured a fair comparison across all iterations:
-* ...
 * **3-Class Sentiment Mapping:** 5-star ratings are mapped into three distinct categories: **Negative** (1–2 stars), **Neutral** (3 stars), and **Positive** (4–5 stars).
 * **Validation Leakage Prevention:** Every experiment strictly separates an untouched **20% Test set** (`seed=42`) and carves out an additional **10% Validation set** from the training pool strictly for early stopping (`early_stopping_rounds` in XGBoost / `EarlyStoppingCallback` in BERT).
 * **Class Imbalance Handling:** Because positive reviews heavily dominate the dataset while neutral reviews represent a small minority (~8.5%), all models apply inverse class weighting (`compute_sample_weight('balanced')` in XGBoost and a custom weighted `CrossEntropyLoss` inside `CustomTrainer` for BERT).
@@ -68,7 +67,7 @@ As the project evolved from initial exploratory scripts into a structured pipeli
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/k-sancar/sentiment-analyzer-olist.git](https://github.com/k-sancar/sentiment-analyzer-olist.git)
+   git clone https://github.com/k-sancar/sentiment-analyzer-olist.git
    cd sentiment-analyzer-olist
    ```
 
@@ -87,8 +86,7 @@ As the project evolved from initial exploratory scripts into a structured pipeli
    * **For Model Training & Development (full setup):**
      ```bash
      # With NVIDIA GPU (strongly recommended):
-     pip install torch torchvision torchaudio --index-url [https://download.pytorch.org/whl/cu124](https://download.pytorch.org/whl/cu124)
-     pip install -r dev-requirements.txt
+     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
      # CPU-only / macOS (strongly discouraged — BERT fine-tuning on CPU is prohibitively slow):
      pip install -r dev-requirements.txt
