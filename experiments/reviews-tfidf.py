@@ -29,12 +29,14 @@ def main():
     
     client = bigquery.Client(project=project_id) 
     query = f"SELECT * FROM `{project_id}.shop_data.shop_data_review`"
+    print("Setting connection with BigQuery and downloading view...")
     df = client.query(query).to_dataframe(create_bqstorage_client=False)
-    print(f"Data loaded. Table shape: {df.shape}")
+    print(f"Success! Data loaded. Table shape: {df.shape}")
 
     df = df.dropna(subset=['review_comment_message']).reset_index(drop=True)
     df = df[df['review_comment_message'].str.len() >= 5]
     reviews = df['review_comment_message'].tolist()
+    
     nlp = spacy.load("pt_core_news_sm")
 
     print("Cleaning and lemmatizing reviews...")
@@ -45,10 +47,16 @@ def main():
 
     df['cleaned_review'] = cleaned_reviews
 
+    def map_sentiment(score):
+                score = int(score)
+                if score <= 2: return 0
+                elif score == 3: return 1
+                else: return 2
+
     print("Vectorizing with TF-IDF...")
     vectorizer = TfidfVectorizer()
     X = vectorizer.fit_transform(df['cleaned_review'])
-    y = df['review_score'].map({1: 0, 2: 0, 3: 1, 4: 2, 5: 2})
+    y = df['review_score'].apply(map_sentiment)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
