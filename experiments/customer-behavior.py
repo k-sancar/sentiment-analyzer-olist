@@ -29,11 +29,9 @@ def main():
     df = client.query(query).to_dataframe(create_bqstorage_client=False)
     print(f"Success! Data loaded. Table shape: {df.shape}")
 
-    # Konwersja cech kategorialnych pod XGBoost
     text_columns = ['customer_state', 'main_seller_state', 'main_product_category', 'order_status']
     df[text_columns] = df[text_columns].astype("category")
 
-    # Mapowanie ocen na 3 kategorie (1-2 -> 0, 3 -> 1, 4-5 -> 2)
     def map_sentiment(score):
         score = int(score)
         if score <= 2: return 0
@@ -43,11 +41,14 @@ def main():
     X = df.drop('review_score', axis=1)
     y = df['review_score'].apply(map_sentiment)
 
-    # 1. Podział na zbiór treningowy i nietykalny testowy (80/20)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Separating test set from training and early stopping.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-    # 2. Wydzielenie osobnego zbioru walidacyjnego z puli treningowej pod early stopping (zapobiega wyciekowi danych)
-    X_train_final, X_val, y_train_final, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42)
+    X_train_final, X_val, y_train_final, y_val = train_test_split(
+        X_train, y_train, test_size=0.1, random_state=42
+    )
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=94)
     clf = xgb.XGBClassifier(tree_method="hist", early_stopping_rounds=3, enable_categorical=True)
@@ -76,7 +77,6 @@ def main():
     for i, (model_instance, scores) in enumerate(results.items()):
         print(f"Iteration {i+1}: Train Macro F1: {scores[0]:.4f} | Test Macro F1: {scores[1]:.4f}")
 
-    # Finalne trenowanie na całej puli treningowej z użyciem oddzielnego zbioru walidacyjnego do zatrzymania
     print("\nTraining final XGBoost model on tabular features...")
     weights_final = compute_sample_weight(class_weight='balanced', y=y_train_final)
     clf.fit(
