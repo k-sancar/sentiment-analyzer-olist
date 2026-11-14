@@ -55,7 +55,7 @@ def main():
     weights = compute_sample_weight(class_weight='balanced', y=y_train)
 
     print("Running 5-Fold Cross-Validation...")
-    for i, (train_idx, test_idx) in enumerate(cv.split(X_train, y_train, start = 1)):
+    for i, (train_idx, test_idx) in enumerate(cv.split(X_train, y_train), start = 1):
 
         X_train_cv, y_train_cv = X_train.iloc[train_idx], y_train.iloc[train_idx]
         X_test_cv, y_test_cv = X_train.iloc[test_idx], y_train.iloc[test_idx]
@@ -67,7 +67,7 @@ def main():
                     eval_set=[(X_val, y_val)],
                     sample_weight=weights_cv,
                     verbose=False
-        )
+                )
         
         train_score = f1_score(
                     y_train_cv, 

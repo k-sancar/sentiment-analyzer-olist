@@ -42,6 +42,7 @@ def main():
 
     nlp = spacy.load("pt_core_news_lg")
 
+    print("Vectorizing...")
     vectors = []
     for doc in nlp.pipe(texts, disable=["parser", "ner", "textcat"], batch_size=2000):
         vectors.append(doc.vector)
@@ -69,13 +70,15 @@ def main():
     weights = compute_sample_weight(class_weight='balanced', y=y_train)
 
     print("Running 5-Fold Cross-Validation...")
-    for i, (train_idx, test_idx) in enumerate(cv.split(X_train, y_train, start = 1)):
+
+    for i, (train_idx, test_idx) in enumerate(cv.split(X_train, y_train), start = 1):
 
         X_train_cv, y_train_cv = X_train[train_idx], y_train.iloc[train_idx]
         X_test_cv, y_test_cv = X_train[test_idx], y_train.iloc[test_idx]
         weights_cv = compute_sample_weight(class_weight='balanced', y=y_train_cv)
 
         estimator = clone(clf)        
+
         estimator.fit(
                     X_train_cv, y_train_cv,
                     eval_set=[(X_val, y_val)],
@@ -87,7 +90,7 @@ def main():
                     y_train_cv, 
                     estimator.predict(X_train_cv), 
                     average='macro'
-                    )
+                )
         
         test_score = f1_score(
                     y_test_cv,
@@ -108,6 +111,7 @@ def main():
     y_pred = clf.predict(X_test)
 
     target_names = ['Negative (1-2)', 'Neutral (3)', 'Positive (4-5)']
+
     print(classification_report(y_test, y_pred, target_names=target_names, digits=3))
     print("\nConfusion Matrix:")
     print(confusion_matrix(y_test, y_pred))
