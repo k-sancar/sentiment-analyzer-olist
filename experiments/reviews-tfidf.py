@@ -36,7 +36,7 @@ def main():
     df = df.dropna(subset=['review_comment_message']).reset_index(drop=True)
     df = df[df['review_comment_message'].str.len() >= 5]
     reviews = df['review_comment_message'].tolist()
-    
+
     nlp = spacy.load("pt_core_news_sm")
 
     print("Cleaning and lemmatizing reviews...")
@@ -48,44 +48,71 @@ def main():
     df['cleaned_review'] = cleaned_reviews
 
     def map_sentiment(score):
-                score = int(score)
-                if score <= 2: return 0
-                elif score == 3: return 1
-                else: return 2
+            score = int(score)
+            if score <= 2: return 0
+            elif score == 3: return 1
+            else: return 2
+
+    X = df['cleaned_review']
+    y = df['review_score'].apply(map_sentiment)
+
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=0.1, random_state=42
+    )
 
     print("Vectorizing with TF-IDF...")
     vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(df['cleaned_review'])
-    y = df['review_score'].apply(map_sentiment)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train = vectorizer.fit_transform(X_train)
+    X_val = vectorizer.transform(X_val)
+    X_test = vectorizer.transform(X_test)
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=94)
     clf = xgb.XGBClassifier(tree_method="hist", early_stopping_rounds=3)
     weights = compute_sample_weight(class_weight='balanced', y=y_train)
-    results = {}
 
-    for train_idx, test_idx in cv.split(X_train, y_train):
-            X_train_cv, X_test_cv = X_train[train_idx], X_train[test_idx]
-            y_train_cv, y_test_cv = y_train.iloc[train_idx], y_train.iloc[test_idx]
-            weights_cv = weights[train_idx]
-    
-            estimator = clone(clf)
-            
-            est = estimator.fit(X_train_cv, y_train_cv, eval_set=[(X_test_cv, y_test_cv)], sample_weight=weights_cv, verbose=False)
-            train_score = f1_score(y_train_cv, estimator.predict(X_train_cv), average='macro')
-            test_score = f1_score(y_test_cv, estimator.predict(X_test_cv), average='macro')
-    
-            results[est] = (train_score, test_score)
-            
-    for i, (model_instance, scores) in enumerate(results.items()):
-            print(f"Iteration {i+1}: Train Macro F1: {scores[0]:.4f} | Test Macro F1: {scores[1]:.4f}")
+    print("Running 5-Fold Cross-Validation...")
 
-    X_train_final, X_val, y_train_final, y_val = train_test_split(X_train, y_train, test_size=0.1, random_state=42)
+    for i, (train_idx, test_idx) in enumerate(cv.split(X_train, y_train), start = 1):
 
-    weights_final = compute_sample_weight(class_weight='balanced', y=y_train_final)
+        X_train_cv, y_train_cv = X_train[train_idx], y_train.iloc[train_idx]
+        X_test_cv, y_test_cv = X_train[test_idx], y_train.iloc[test_idx]
+        weights_cv = compute_sample_weight(class_weight='balanced', y=y_train_cv)
 
-    clf.fit(X_train_final, y_train_final, eval_set=[(X_val, y_val)], sample_weight=weights_final, verbose=False)
+        estimator = clone(clf)
+
+        estimator.fit(
+                    X_train_cv, y_train_cv,
+                    eval_set=[(X_val, y_val)],
+                    sample_weight=weights_cv,
+                    verbose=False
+                )
+
+        train_score = f1_score(
+                    y_train_cv, 
+                    estimator.predict(X_train_cv), 
+                    average='macro'
+                )
+        
+        test_score = f1_score(
+                    y_test_cv, 
+                    estimator.predict(X_test_cv), 
+                    average='macro'
+                )
+
+        print(f"Iteration {i}: Train Macro F1: {train_score:.4f} | Test Macro F1: {test_score:.4f}")
+
+    clf.fit(
+        X_train, 
+        y_train, 
+        eval_set=[(X_val, y_val)], 
+        verbose=False,
+        sample_weight=weights 
+    )
 
     y_pred = clf.predict(X_test)
 
